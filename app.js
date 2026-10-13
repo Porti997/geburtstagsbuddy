@@ -46,26 +46,27 @@ $('exportData').addEventListener('click',async()=>{const now=new Date(),stamp=no
 $('importData').addEventListener('click',()=>$('importFile').click());$('importFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data||!Array.isArray(data.events))throw new Error();if(!confirm('Import ersetzt die aktuell gespeicherten Daten. Fortfahren?'))return;state={...state,...data};persist();renderHome();renderPeople();toast('Daten importiert')}catch(err){toast('Datei konnte nicht gelesen werden')}e.target.value=''});
 $('clearData').addEventListener('click',()=>{if(confirm('Alle Personen und Einstellungen auf diesem Gerät löschen? Exportiere vorher eine Sicherung.')){state={events:[],style:'Schreibe locker, herzlich, kurz und natürlich. Nicht zu kitschig.',reminderDays:3,done:{},backup:{lastBackupAt:null,lastReminderNoticeMonth:null}};persist();renderHome();renderPeople();toast('Lokale Daten gelöscht')}});
 
-function icsEscape(value){return String(value??'').replace(/\\\\/g,'\\\\\\\\').replace(/;/g,'\\\\;').replace(/,/g,'\\\\,').replace(/\r?\n/g,'\\\\n')}
+function icsEscape(value){return String(value??'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n')}
 function icsDate(date,time='080000'){return date.replace(/-/g,'')+'T'+time}
-function icsFold(line){const chunks=[];let current='',bytes=0;for(const char of line){const size=new TextEncoder().encode(char).length;if(bytes+size>73){chunks.push(current);current=' ';bytes=1}current+=char;bytes+=size}chunks.push(current);return chunks.join('\\r\\n')}
+function icsFold(line){const chunks=[];let current='',bytes=0;for(const char of line){const size=new TextEncoder().encode(char).length;if(bytes+size>73){chunks.push(current);current=' ';bytes=1}current+=char;bytes+=size}chunks.push(current);return chunks.join('\r\n')}
 function exportAppleCalendar(){
  if(!state.events.length){toast('Bitte zuerst mindestens einen Anlass anlegen.');return}
- const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\\.\\d{3}/,'');
+ const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Geburtstagsbuddy//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Geburtstagsbuddy'];
  state.events.forEach(ev=>{
   if(!ev.date)return;
-  const date=ev.date,uid=icsEscape(ev.id||uid())+'@geburtstagsbuddy';
+  const date=ev.date,eventUid=icsEscape(ev.id||uid())+'@geburtstagsbuddy';
   const summary=fullName(ev)+' – '+eventLabel(ev);
-  const desc=[ev.relationship?'Beziehung: '+ev.relationship:'',ev.notes?'Notizen: '+ev.notes:''].filter(Boolean).join('\\n');
-  lines.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+stamp,'DTSTART;TZID=Europe/Berlin:'+icsDate(date),'DURATION:PT15M','RRULE:FREQ=YEARLY','SUMMARY:'+icsEscape(summary));
+  const desc=[ev.relationship?'Beziehung: '+ev.relationship:'',ev.notes?'Notizen: '+ev.notes:''].filter(Boolean).join('\n');
+  lines.push('BEGIN:VEVENT','UID:'+eventUid,'DTSTAMP:'+stamp,'DTSTART;TZID=Europe/Berlin:'+icsDate(date),'DURATION:PT15M','RRULE:FREQ=YEARLY','SUMMARY:'+icsEscape(summary));
   if(desc)lines.push('DESCRIPTION:'+icsEscape(desc));
   lines.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEscape('Morgen: '+summary),'TRIGGER:-PT14H','END:VALARM','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEscape('Heute: '+summary),'TRIGGER:PT0S','END:VALARM','END:VEVENT');
  });
  lines.push('END:VCALENDAR');
- const blob=new Blob([lines.map(icsFold).join('\\r\\n')+'\\r\\n'],{type:'text/calendar;charset=utf-8'});
+ const blob=new Blob([lines.map(icsFold).join('\r\n')+'\r\n'],{type:'text/calendar;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Geburtstagsbuddy-Kalender.ics';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
  toast('Kalenderdatei erstellt. Öffne sie und füge die Termine zum Apple Kalender hinzu.');
 }
 $('exportCalendar').addEventListener('click',exportAppleCalendar);
-\nload();state.backup=state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null};renderHome();checkBackupReminder();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+load();state.backup=state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null};renderHome();checkBackupReminder();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
