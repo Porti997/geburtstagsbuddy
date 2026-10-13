@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b91c1c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Geburtstagsbuddy">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<title>Geburtstagsbuddy</title>
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand"><div class="brand-icon">♥</div><div><div class="brand-name">Geburtstagsbuddy</div><div class="brand-sub">Denk dran. Sag's persönlich.</div></div></div>
+    <button class="icon-button" id="settingsOpen" aria-label="Einstellungen">⚙</button>
+  </header>
+  <main>
+    <section class="view active" id="view-home">
+      <div class="hero"><div class="eyebrow">DEIN PERSÖNLICHER ERINNERER</div><h1>Schöne Momente<br>nicht vergessen.</h1><p>Alle wichtigen Menschen und Anlässe an einem Ort.</p><button class="primary-button" id="addFirst">＋ Person oder Anlass hinzufügen</button></div>
+      <div class="section-heading"><div><h2>Als Nächstes</h2><p id="upcomingCaption">Deine nächsten Anlässe</p></div><button class="text-button" data-nav="people">Alle ansehen</button></div>
+      <div id="upcomingList" class="event-list"></div><div class="section-heading"><div><h2>Heute</h2><p>Was heute ansteht</p></div></div><div id="todayList" class="event-list"></div>
+      <div class="empty-state" id="homeEmpty"><div class="empty-emoji">🎂</div><h3>Deine Liste beginnt hier</h3><p>Trage Geburtstage, Hochzeitstage und andere wichtige Termine ein. Deine Daten bleiben auf diesem Gerät.</p><button class="primary-button" id="addEmpty">Ersten Anlass anlegen</button></div>
+      <div class="privacy-note"><span>🔒</span><div><strong>Deine Daten bleiben privat</strong><p>Profile und Termine werden lokal in diesem Browser gespeichert.</p></div></div>
+    </section>
+    <section class="view" id="view-people"><div class="page-title"><div><span class="eyebrow">DEINE LISTE</span><h1>Personen & Anlässe</h1><p>Alles Wichtige an einem Ort.</p></div><button class="round-add" id="addPersonTop">＋</button></div>
+      <label class="search"><span>⌕</span><input id="searchInput" placeholder="Person oder Anlass suchen"></label>
+      <div class="filter-row" id="filters"><button class="filter active" data-filter="all">Alle</button><button class="filter" data-filter="Geburtstag">Geburtstage</button><button class="filter" data-filter="Hochzeitstag">Hochzeitstage</button><button class="filter" data-filter="Jahrestag">Jahrestage</button><button class="filter" data-filter="Eigener Anlass">Andere</button></div>
+      <div id="peopleList" class="event-list"></div><div class="empty-state compact" id="peopleEmpty"><div class="empty-emoji">🗓️</div><h3>Noch keine Anlässe</h3><p>Füge eine Person und ihren ersten Termin hinzu.</p><button class="primary-button" id="addPeopleEmpty">Anlass hinzufügen</button></div>
+    </section>
+    <section class="view" id="view-calendar"><div class="page-title"><div><span class="eyebrow">IM ÜBERBLICK</span><h1>Kalender</h1><p>Deine nächsten wichtigen Tage.</p></div></div>
+      <div class="month-card"><div class="month-head"><button class="icon-button" id="prevMonth">‹</button><h2 id="monthLabel"></h2><button class="icon-button" id="nextMonth">›</button></div><div class="weekdays"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div id="calendarGrid" class="calendar-grid"></div></div>
+      <div class="section-heading"><div><h2 id="selectedDateTitle">Termine</h2><p>Tippe einen Tag im Kalender an.</p></div></div><div id="calendarEvents" class="event-list"></div>
+    </section>
+    <section class="view" id="view-settings"><div class="page-title"><div><span class="eyebrow">DEINE APP</span><h1>Einstellungen</h1><p>So passt Geburtstagsbuddy zu dir.</p></div></div>
+      <div class="settings-card"><h3>Dein Schreibstil</h3><p>Diese Vorgaben gelten für alle automatisch erstellten Glückwünsche.</p><textarea id="globalStyle" rows="4" placeholder="z. B. locker, herzlich, kurz und natürlich. Nicht zu kitschig."></textarea><button class="primary-button full" id="saveStyle">Schreibstil speichern</button></div>
+      <div class="settings-card"><h3>Erinnerungseinstellungen</h3><p>Lege fest, wie früh ein Anlass in der App hervorgehoben wird.</p><label class="field-label">Tage vorher anzeigen</label><select id="reminderDays"><option value="0">Nur am Tag selbst</option><option value="1">1 Tag vorher</option><option value="3" selected>3 Tage vorher</option><option value="7">7 Tage vorher</option><option value="14">14 Tage vorher</option></select><p class="hint">Diese Einstellung steuert die Anzeige in der App. Diese Version versendet noch keine Hintergrund-Push-Mitteilungen.</p></div>
+      <div class="settings-card"><h3>Datensicherung</h3><p>Exportiere deine Profile und Anlässe als Datei, um sie später wiederherzustellen.</p><div class="button-row"><button class="secondary-button" id="exportData">Daten exportieren</button><button class="secondary-button" id="importData">Daten importieren</button></div><input type="file" id="importFile" accept="application/json,.json" hidden></div>
+      <div class="settings-card"><h3>Installation auf dem iPhone</h3><p>In Safari auf „Teilen“ tippen und „Zum Home-Bildschirm“ wählen.</p></div>
+      <div class="settings-card danger-zone"><h3>Lokale Daten</h3><p>Das Löschen kann nicht rückgängig gemacht werden. Exportiere vorher deine Daten.</p><button class="secondary-button danger" id="clearData">Alle Daten löschen</button></div><p class="version">Geburtstagsbuddy · Erste Web-App-Version</p>
+    </section>
+  </main>
+  <nav class="bottom-nav"><button class="nav-item active" data-nav="home"><span>⌂</span><small>Übersicht</small></button><button class="nav-item" data-nav="people"><span>♧</span><small>Personen</small></button><button class="nav-item" data-nav="calendar"><span>▦</span><small>Kalender</small></button><button class="nav-item" data-nav="settings"><span>⚙</span><small>Einstellungen</small></button></nav>
+</div>
+<div class="modal-backdrop" id="personModal" hidden><div class="modal-sheet"><div class="sheet-grabber"></div><div class="modal-head"><div><span class="eyebrow">NEUER EINTRAG</span><h2 id="modalTitle">Person & Anlass</h2></div><button class="icon-button" id="closeModal">✕</button></div>
+<form id="personForm"><input type="hidden" id="editId"><label class="field-label">Name der Person *</label><input id="personName" required maxlength="80" placeholder="z. B. Thomas"><label class="field-label">Art des Anlasses *</label><select id="eventType"><option>Geburtstag</option><option>Hochzeitstag</option><option>Jahrestag</option><option>Eigener Anlass</option></select><label class="field-label" id="customLabel" hidden>Bezeichnung des Anlasses</label><input id="customName" maxlength="80" placeholder="z. B. Arbeitsjubiläum" hidden>
+<div class="form-grid"><div><label class="field-label">Datum *</label><input id="eventDate" type="date" required></div><div id="birthYearWrap"><label class="field-label">Geburtsjahr (optional)</label><input id="birthYear" type="number" min="1900" max="2200" placeholder="z. B. 1990"></div></div>
+<label class="field-label">Beziehung zu dir</label><select id="relationship"><option value="">Nicht angegeben</option><option>Partner/in</option><option>Familie</option><option>Freund/in</option><option>Kollege/Kollegin</option><option>Bekannte/r</option><option>Sonstiges</option></select><label class="field-label">Persönliche Infos & Prompt</label><textarea id="personalNotes" rows="3" placeholder="z. B. FC-Bayern-Fan, kennt mich seit der Ausbildung, gern locker und humorvoll"></textarea><p class="hint">Einmal speichern – die Angaben werden bei künftigen Glückwünschen wiederverwendet.</p>
+<label class="field-label">Erinnerung</label><select id="eventReminder"><option value="0">Am Tag selbst</option><option value="1">1 Tag vorher und am Tag</option><option value="3" selected>3 Tage vorher und am Tag</option><option value="7">7 Tage vorher und am Tag</option></select><button class="primary-button full" type="submit" id="savePerson">Eintrag speichern</button><button class="secondary-button full" type="button" id="deletePerson" hidden>Eintrag löschen</button></form></div></div>
+<div class="modal-backdrop" id="messageModal" hidden><div class="modal-sheet"><div class="sheet-grabber"></div><div class="modal-head"><div><span class="eyebrow">DEIN GLÜCKWUNSCH</span><h2 id="messageTitle">Nachricht für ...</h2></div><button class="icon-button" id="closeMessage">✕</button></div><div class="message-note">Kurz, persönlich und in deinem Stil.</div><textarea id="messageText" rows="6"></textarea><div class="button-row"><button class="secondary-button" id="regenerate">↻ Neu formulieren</button><button class="primary-button" id="copyMessage">Text kopieren</button></div><button class="secondary-button full" id="markDone">✓ Als erledigt markieren</button></div></div>
+<div class="toast" id="toast" role="status"></div><script src="app.js"></script></body></html>
