@@ -14,3 +14,6 @@
 
 /* Emphasize birthdays happening today and keep the add action compact. */
 .event-card.birthday-today{background:#fff0e8;border:2px solid #f08a45;box-shadow:0 4px 14px #e76d2724}.birthday-today .date-tile{background:#e76d27;color:#fff}.birthday-today .event-info h3{color:#a6400b}.birthday-badge{display:inline-block;vertical-align:middle;margin:4px 0 0 4px;padding:4px 7px;border-radius:7px;background:#e76d27;color:white;font-size:9px;letter-spacing:.3px;white-space:normal}.hero .primary-button{padding:10px 12px;font-size:12px;border-radius:11px}.hero h1{margin-top:10px}
+
+/* Compact home hero so the upcoming birthday is the visual focus. */
+.hero{padding:14px 18px!important;border-radius:18px!important;display:flex;align-items:center;justify-content:center;min-height:0}.hero .eyebrow,.hero h1,.hero p{display:none!important}.hero .primary-button{width:100%;padding:13px 14px!important;font-size:14px!important;border-radius:12px!important;background:#fff;color:var(--dark)}
