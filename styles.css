@@ -5,3 +5,6 @@
 #giftSuggestions ul{margin:8px 0 0;padding-left:20px}#giftSuggestions li{margin:5px 0;line-height:1.4}.feature-option{cursor:pointer}
 
 #geocodeStatus{margin-top:4px}#birthAstroFields a{color:var(--red);text-decoration:underline}
+
+/* Prevent automatic input zoom on iPhone Safari: controls need at least 16px. */
+@media (max-width: 767px){.modal-sheet input,.modal-sheet select,.modal-sheet textarea,.settings-card input,.settings-card select,.settings-card textarea,.search input{font-size:16px!important}}
