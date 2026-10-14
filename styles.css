@@ -19,7 +19,7 @@
 .hero{padding:14px 18px!important;border-radius:18px!important;display:flex;align-items:center;justify-content:center;min-height:0}.hero .eyebrow,.hero h1,.hero p{display:none!important}.hero .primary-button{width:100%;padding:13px 14px!important;font-size:14px!important;border-radius:12px!important;background:#fff;color:var(--dark)}
 
 /* Read-only, full-screen person detail view. */
-.event-card[data-open]{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.event-card[data-open]{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none;position:relative}
 .event-card[data-open]:focus-visible{outline:3px solid #b91c1c;outline-offset:3px}
 .detail-view{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;overscroll-behavior:contain;padding:calc(12px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom))}
 .detail-view[hidden]{display:none}
