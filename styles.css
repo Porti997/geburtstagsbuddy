@@ -11,3 +11,6 @@
 
 /* iOS: keep the form viewport at its intended scale while typing. */
 @media (max-width: 767px){html,body{width:100%;max-width:100%;overflow-x:hidden}.modal-sheet input,.modal-sheet select,.modal-sheet textarea,.modal-sheet .form-grid input,.modal-sheet #eventDate,.modal-sheet #birthTime,.modal-sheet #birthPlace,.modal-sheet #birthLat,.modal-sheet #birthLon,.search input,.settings-card input,.settings-card select,.settings-card textarea{font-size:16px!important;transform:none;zoom:1}}
+
+/* Emphasize birthdays happening today and keep the add action compact. */
+.event-card.birthday-today{background:#fff0e8;border:2px solid #f08a45;box-shadow:0 4px 14px #e76d2724}.birthday-today .date-tile{background:#e76d27;color:#fff}.birthday-today .event-info h3{color:#a6400b}.birthday-badge{display:inline-block;vertical-align:middle;margin:4px 0 0 4px;padding:4px 7px;border-radius:7px;background:#e76d27;color:white;font-size:9px;letter-spacing:.3px;white-space:normal}.hero .primary-button{padding:10px 12px;font-size:12px;border-radius:11px}.hero h1{margin-top:10px}
