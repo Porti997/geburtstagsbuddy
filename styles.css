@@ -84,3 +84,7 @@ body.photo-crop-open{overflow:hidden;touch-action:none}
 .detail-gift-planner .field-label{display:block;margin-top:8px}
 .detail-gift-planner .gift-suggestion-list{margin:14px 0}
 .detail-gift-planner #detailMoreGiftIdeas{margin-top:8px}
+
+/* iOS Safari: the real backup file input sits over the visible control. */
+.backup-import-label{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;min-height:48px;touch-action:manipulation}
+.backup-import-label input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;display:block!important;cursor:pointer;font-size:100px;padding:0;margin:0;border:0}
