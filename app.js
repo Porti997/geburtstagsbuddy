@@ -15,7 +15,7 @@ document.addEventListener('change',async function(e){
   if(!data||!Array.isArray(data.events))throw new Error('In dieser Datei fehlt die Liste „events“. Bitte eine originale Geburtstagsbuddy-Sicherung auswählen.');
   if(typeof state==='undefined')throw new Error('Die App wurde nicht vollständig initialisiert. Bitte Seite neu laden und erneut versuchen.');
   state={...state,...data,events:data.events.map(normalizeStoredEvent),features:{...(state.features||{}),...(data.features||{})},done:data.done&&typeof data.done==='object'?data.done:{},backup:data.backup&&typeof data.backup==='object'?data.backup:(state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null})};
-  try{const snapshot=JSON.stringify(state);localStorage.setItem('geburtstagsbuddy.v1',snapshot);if(state.events.length)localStorage.setItem('geburtstagsbuddy.recovery.v1',snapshot)}catch(_){throw new Error('Daten wurden gelesen, konnten aber nicht lokal gespeichert werden. Bitte freien Gerätespeicher prüfen.')}
+  try{localStorage.setItem('geburtstagsbuddy.v1',JSON.stringify(state))}catch(_){throw new Error('Daten wurden gelesen, konnten aber nicht lokal gespeichert werden. Bitte freien Gerätespeicher prüfen.')}
   try{if(typeof renderHome==='function')renderHome();if(typeof renderPeople==='function')renderPeople();if(typeof renderCalendar==='function')renderCalendar();if(typeof renderSettings==='function')renderSettings();if(typeof navigate==='function')navigate('home')}catch(renderError){throw new Error('Sicherung gespeichert, aber Anzeige fehlgeschlagen: '+(renderError.message||'unbekannter Darstellungsfehler'))}
   showImportMessage('Sicherung geladen: '+state.events.length+' Einträge.');
  }catch(err){showImportMessage(err&&err.message?err.message:'Sicherung konnte nicht geladen werden.')}
@@ -53,22 +53,16 @@ function normalizeStoredEvent(ev){
  if(!item.firstName){const parts=String(item.name||'').trim().split(/\s+/);item.firstName=parts.shift()||'';if(!item.lastName)item.lastName=parts.join(' ')}
  return item;
 }
-const RECOVERY_STORE='geburtstagsbuddy.recovery.v1';
 function load(){
- let saved=null,recovery=null;
- try{saved=JSON.parse(localStorage.getItem(STORE))}catch(_){}
- try{recovery=JSON.parse(localStorage.getItem(RECOVERY_STORE))}catch(_){}
+ let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE))}catch(_){}
  if(saved&&typeof saved==='object')state={...state,...saved};
- const savedEvents=Array.isArray(state.events)?state.events:[];
- const recoveryEvents=recovery&&Array.isArray(recovery.events)?recovery.events:[];
- if(savedEvents.length===0&&recoveryEvents.length>0){state={...state,...recovery,events:recoveryEvents};try{localStorage.setItem(STORE,JSON.stringify(state))}catch(_){}}
  state.events=(Array.isArray(state.events)?state.events:[]).map(normalizeStoredEvent);
 }
 
 
 function fullName(ev){return [ev.firstName,ev.lastName].filter(Boolean).join(' ')||ev.name||''}
 function greetingName(ev){return ev.firstName||String(ev.name||'').trim().split(/\\s+/)[0]||''}
-function persist(){try{const snapshot=JSON.stringify(state);localStorage.setItem(STORE,snapshot);if(Array.isArray(state.events)&&state.events.length>0)localStorage.setItem(RECOVERY_STORE,snapshot);return true}catch(e){toast('Speichern nicht möglich – der Gerätespeicher ist möglicherweise voll. Bitte Daten exportieren.');return false}}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(state));return true}catch(e){toast('Speichern nicht möglich – der Gerätespeicher ist möglicherweise voll. Bitte Daten exportieren.');return false}}
 function uid(){return 'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function nextOccurrence(ev,from=new Date()){const src=parseDate(ev.date);if(!src)return null;const today=new Date(from.getFullYear(),from.getMonth(),from.getDate(),12);let d=new Date(today.getFullYear(),src.getMonth(),src.getDate(),12);if(d<today)d=new Date(today.getFullYear()+1,src.getMonth(),src.getDate(),12);return d}
 function dayDiff(a,b){return Math.round((new Date(a.getFullYear(),a.getMonth(),a.getDate())-new Date(b.getFullYear(),b.getMonth(),b.getDate()))/86400000)}
@@ -117,7 +111,7 @@ function openDetails(id){
  const subtitle=[ev.relationship,ev.customName&&ev.type==='Eigener Anlass'?ev.customName:''].filter(Boolean).join(' · ');
  const portrait=ev.photo?'<img class="detail-photo" src="'+ev.photo+'" alt="Foto von '+esc(fullName(ev))+'">':'<div class="detail-avatar">'+typeIcon(ev.type)+'</div>';
  layer.innerHTML='<div class="detail-top"><button class="detail-back" type="button" aria-label="Zurück zur Übersicht">‹</button><span>PERSONENPROFIL</span><span class="detail-top-spacer"></span></div><div class="detail-hero">'+portrait+'<p class="detail-eyebrow">'+esc(eventLabel(ev).toUpperCase())+'</p><h1>'+esc(fullName(ev))+'</h1>'+(subtitle?'<p class="detail-subtitle">'+esc(subtitle)+'</p>':'')+(ev.type==='Geburtstag'&&occ&&dayDiff(occ,new Date())===0?'<span class="detail-today">🎉 Heute Geburtstag</span>':'')+'</div><div class="detail-content">'+basic+personal+savedGifts+gifts+'</div>';
- layer.hidden=false;document.body.classList.add('detail-open');layer.querySelector('.detail-back').addEventListener('click',closeDetails);$('detailGiftBudget').value=ev.giftBudget||'any';$('detailGiftStyle').value=ev.giftStyle||'mix';const updateProfileGifts=()=>{const budget=$('detailGiftBudget').value,style=$('detailGiftStyle').value;ev.giftBudget=budget;ev.giftStyle=style;persist();const ideas=giftSuggestions(ev,budget,style);$('detailGiftSuggestions').innerHTML='<div class="gift-suggestion-list">'+ideas.map(x=>'<div class="gift-suggestion"><span>'+esc(x)+'</span><a href="'+esc(giftSearchUrl(x,ev,budget))+'" target="_blank" rel="noopener noreferrer">Im Internet suchen ↗</a></div>').join('')+'</div>'};$('detailGiftBudget').addEventListener('change',updateProfileGifts);$('detailGiftStyle').addEventListener('change',updateProfileGifts);$('detailMoreGiftIdeas').addEventListener('click',()=>{giftIdeaOffset++;updateProfileGifts()});updateProfileGifts();window.scrollTo(0,0);
+ layer.hidden=false;document.body.classList.add('detail-open');layer.querySelector('.detail-back').addEventListener('click',closeDetails);$('detailGiftBudget').value=ev.giftBudget||'any';$('detailGiftStyle').value=ev.giftStyle||'mix';const updateProfileGifts=(savePreferences=false)=>{const budget=$('detailGiftBudget').value,style=$('detailGiftStyle').value;const current=state.events.find(item=>String(item.id)===String(id));if(savePreferences&&current){current.giftBudget=budget;current.giftStyle=style;persist()}const ideas=giftSuggestions({...ev,giftBudget:budget,giftStyle:style},budget,style);$('detailGiftSuggestions').innerHTML='<div class="gift-suggestion-list">'+ideas.map(x=>'<div class="gift-suggestion"><span>'+esc(x)+'</span><a href="'+esc(giftSearchUrl(x,ev,budget))+'" target="_blank" rel="noopener noreferrer">Im Internet suchen ↗</a></div>').join('')+'</div>'};$('detailGiftBudget').addEventListener('change',()=>updateProfileGifts(true));$('detailGiftStyle').addEventListener('change',()=>updateProfileGifts(true));$('detailMoreGiftIdeas').addEventListener('click',()=>{giftIdeaOffset++;updateProfileGifts(false)});updateProfileGifts(false);window.scrollTo(0,0);
 }
 function closeDetails(){const layer=$('detailView');if(layer)layer.hidden=true;document.body.classList.remove('detail-open')}
 function allOccurrences(){return state.events.map(ev=>({ev,date:nextOccurrence(ev)})).filter(x=>x.date).sort((a,b)=>{const diff=a.date-b.date;if(diff!==0)return diff;const at=a.ev.type==='Geburtstag'&&dayDiff(a.date,new Date())===0?0:1,bt=b.ev.type==='Geburtstag'&&dayDiff(b.date,new Date())===0?0:1;return at-bt})}
