@@ -1,3 +1,15 @@
+
+// Early, delegated controls: keeps core navigation and backup actions available even if a later
+// feature initializer throws. Registered before the rest of the app initializes.
+document.addEventListener('click',function(e){
+ const nav=e.target.closest('[data-nav]');
+ if(nav){e.preventDefault();document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+nav.dataset.nav));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.nav===nav.dataset.nav));window.scrollTo(0,0);return}
+ const target=e.target.closest('#settingsOpen,#addFirst,#addEmpty,#addPersonTop,#addPeopleEmpty,#importData');
+ if(!target)return;
+ if(target.id==='settingsOpen'){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-settings'));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.nav==='settings'));window.scrollTo(0,0);return}
+ if(['addFirst','addEmpty','addPersonTop','addPeopleEmpty'].includes(target.id)){const modal=document.getElementById('personModal');if(modal){modal.hidden=false;document.body.style.overflow='hidden';}return}
+ if(target.id==='importData'){const input=document.getElementById('importFile');if(input)input.click()}
+},true);
 const $=id=>document.getElementById(id), STORE='geburtstagsbuddy.v1';
 let state={events:[],features:{zodiac:false,ascendant:false,gifts:false},style:'Schreibe locker, herzlich, kurz und natürlich. Nicht zu kitschig.',reminderDays:3,done:{},backup:{lastBackupAt:null,lastReminderNoticeMonth:null}},activeFilter='all',calendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),selectedCalendarDate=isoDate(new Date()),messageEventId=null,toastTimer;
 function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
