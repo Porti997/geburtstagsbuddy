@@ -62,7 +62,22 @@ function load(){
 
 function fullName(ev){return [ev.firstName,ev.lastName].filter(Boolean).join(' ')||ev.name||''}
 function greetingName(ev){return ev.firstName||String(ev.name||'').trim().split(/\\s+/)[0]||''}
-function persist(){try{localStorage.setItem(STORE,JSON.stringify(state));return true}catch(e){toast('Speichern nicht möglich – der Gerätespeicher ist möglicherweise voll. Bitte Daten exportieren.');return false}}
+function persist(options={}){
+ try{
+  const previous=JSON.parse(localStorage.getItem(STORE)||'null');
+  const oldEvents=previous&&Array.isArray(previous.events)?previous.events:[];
+  const newEvents=Array.isArray(state.events)?state.events:[];
+  if(!options.allowCountChange&&oldEvents.length>newEvents.length){
+   toast('Speichern abgebrochen: Die Profilanzahl würde von '+oldEvents.length+' auf '+newEvents.length+' sinken. Deine gespeicherten Daten wurden nicht überschrieben.');
+   return false;
+  }
+  const snapshot=JSON.stringify(state);
+  localStorage.setItem(STORE,snapshot);
+  const check=JSON.parse(localStorage.getItem(STORE)||'null');
+  if(!check||!Array.isArray(check.events)||check.events.length!==newEvents.length)throw new Error('Speicherprüfung fehlgeschlagen');
+  return true;
+ }catch(e){toast('Speichern nicht möglich – die vorhandenen Daten wurden nicht absichtlich gelöscht. Bitte Sicherung exportieren.');return false}
+}
 function uid(){return 'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function nextOccurrence(ev,from=new Date()){const src=parseDate(ev.date);if(!src)return null;const today=new Date(from.getFullYear(),from.getMonth(),from.getDate(),12);let d=new Date(today.getFullYear(),src.getMonth(),src.getDate(),12);if(d<today)d=new Date(today.getFullYear()+1,src.getMonth(),src.getDate(),12);return d}
 function dayDiff(a,b){return Math.round((new Date(a.getFullYear(),a.getMonth(),a.getDate())-new Date(b.getFullYear(),b.getMonth(),b.getDate()))/86400000)}
@@ -147,8 +162,7 @@ function dateInputToISO(raw){const value=String(raw||'').trim();let day,month,ye
 function isoToDateInput(iso){const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'.'+m[2]+'.'+m[1]:''}
 $('eventDate').addEventListener('input',e=>{const el=e.target,old=el.value,pos=el.selectionStart,formatted=formatDateInput(old);if(old!==formatted){el.value=formatted;const next=Math.min(formatted.length,(pos||0)+(formatted.length-old.length));try{el.setSelectionRange(next,next)}catch(_){}}el.setCustomValidity('');refreshAscendantInfo()});
 
-$('eventType').addEventListener('change',updateTypeFields);['eventDate','birthTime','birthLat','birthLon'].forEach(id=>$(id).addEventListener('input',refreshAscendantInfo));['personalNotes','relationship'].forEach(id=>$(id).addEventListener('input',refreshGiftSuggestions));$('birthPlace').addEventListener('blur',()=>geocodeBirthPlace(false));$('birthPlace').addEventListener('change',()=>geocodeBirthPlace(false));$('searchBirthPlace').addEventListener('click',()=>geocodeBirthPlace(true));['addFirst','addEmpty','addPersonTop','addPeopleEmpty'].forEach(id=>$(id).addEventListener('click',()=>openForm()));$('settingsOpen').addEventListener('click',()=>navigate('settings'));$('closeModal').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();closeForm()});
-document.addEventListener('click',function(e){const button=e.target&&e.target.closest?e.target.closest('#closeModal'):null;if(button){e.preventDefault();e.stopPropagation();closeForm()}},true);$('personModal').addEventListener('click',e=>{if(e.target===$('personModal'))closeForm()});
+$('eventType').addEventListener('change',updateTypeFields);['eventDate','birthTime','birthLat','birthLon'].forEach(id=>$(id).addEventListener('input',refreshAscendantInfo));['personalNotes','relationship'].forEach(id=>$(id).addEventListener('input',refreshGiftSuggestions));$('birthPlace').addEventListener('blur',()=>geocodeBirthPlace(false));$('birthPlace').addEventListener('change',()=>geocodeBirthPlace(false));$('searchBirthPlace').addEventListener('click',()=>geocodeBirthPlace(true));['addFirst','addEmpty','addPersonTop','addPeopleEmpty'].forEach(id=>$(id).addEventListener('click',()=>openForm()));$('settingsOpen').addEventListener('click',()=>navigate('settings'));document.addEventListener('click',function(e){const button=e.target&&e.target.closest?e.target.closest('#closeModal,#closeMessage'):null;if(!button)return;e.preventDefault();e.stopPropagation();if(button.id==='closeModal')closeForm();else closeMessage()},true);$('personModal').addEventListener('click',e=>{if(e.target===$('personModal'))closeForm()});
 $('personForm').addEventListener('submit',e=>{
  e.preventDefault();
  const firstName=$('firstName').value.trim(),lastName=$('lastName').value.trim(),id=$('editId').value||uid();
@@ -168,11 +182,11 @@ $('personForm').addEventListener('submit',e=>{
  closeForm();renderHome();renderPeople();renderCalendar();
  toast((i>=0?'Eintrag aktualisiert':'Eintrag gespeichert')+' · '+state.events.length+' Profile vorhanden');
 });
-$('deletePerson').addEventListener('click',()=>{const id=$('editId').value;if(id&&confirm('Diesen Eintrag wirklich löschen?')){state.events=state.events.filter(e=>e.id!==id);persist();closeForm();renderHome();renderPeople();toast('Eintrag gelöscht')}});
+$('deletePerson').addEventListener('click',()=>{const id=$('editId').value;if(id&&confirm('Diesen Eintrag wirklich löschen?')){state.events=state.events.filter(e=>e.id!==id);persist({allowCountChange:true});closeForm();renderHome();renderPeople();toast('Eintrag gelöscht')}});
 function openMessage(id){const ev=state.events.find(e=>e.id===id);if(!ev)return;messageEventId=id;$('messageTitle').textContent='Für '+fullName(ev);$('messageText').value=generateMessage(ev,nextOccurrence(ev));$('messageModal').hidden=false}
 function generateMessage(ev,date){const choose=a=>a[Math.floor(Math.random()*a.length)],age=occurrenceYears(ev,date||new Date());let text;if(ev.type==='Geburtstag')text=choose(['Servus','Hallo','Hey','Hi'])+' '+greetingName(ev)+', '+choose(['alles Gute zum Geburtstag! 🥳','herzlichen Glückwunsch zum Geburtstag! 🎉','alles Liebe zum Geburtstag! 🎂'])+' '+choose(['Ich wünsch dir alles Gute fürs neue Lebensjahr.','Ich hoffe, du hast einen richtig schönen Tag.','Ich wünsch dir nur das Beste!'])+' '+choose(['Lass dich feiern!','Hab einen schönen Tag!','Genieß deinen Tag!']);else if(ev.type==='Hochzeitstag')text='Alles Gute zum '+(age&&age>0?age+'. ':'')+'Hochzeitstag, '+greetingName(ev)+'! ❤️ Ich wünsch euch weiterhin eine schöne gemeinsame Zeit. Feiert schön!';else if(ev.type==='Jahrestag')text='Hey '+greetingName(ev)+', alles Gute zu eurem '+(age&&age>0?age+'. ':'')+'Jahrestag! ❤️ Ich hoffe, ihr habt einen schönen Tag zusammen!';else text='Hallo '+greetingName(ev)+', alles Gute zu '+(ev.customName||'deinem besonderen Tag')+'! 🎉 Ich wünsch dir einen schönen Tag und alles Gute!';if(ev.notes?.trim())text+=' '+ev.notes.trim();return text.replace(/\s+/g,' ').trim()}
 function closeMessage(){$('messageModal').hidden=true;messageEventId=null}
-$('closeMessage').addEventListener('click',closeMessage);$('messageModal').addEventListener('click',e=>{if(e.target===$('messageModal'))closeMessage()});$('regenerate').addEventListener('click',()=>{const ev=state.events.find(e=>e.id===messageEventId);if(ev)$('messageText').value=generateMessage(ev,nextOccurrence(ev))});
+$('messageModal').addEventListener('click',e=>{if(e.target===$('messageModal'))closeMessage()});$('regenerate').addEventListener('click',()=>{const ev=state.events.find(e=>e.id===messageEventId);if(ev)$('messageText').value=generateMessage(ev,nextOccurrence(ev))});
 $('copyMessage').addEventListener('click',async()=>{const t=$('messageText').value;try{await navigator.clipboard.writeText(t);toast('Nachricht kopiert')}catch(e){$('messageText').select();document.execCommand('copy');toast('Nachricht kopiert')}});
 $('markDone').addEventListener('click',()=>{const ev=state.events.find(e=>e.id===messageEventId);if(!ev)return;state.done[ev.id+'-'+isoDate(nextOccurrence(ev))]=true;persist();closeMessage();renderHome();renderPeople();toast('Als erledigt markiert')});
 $('exportData').addEventListener('click',async()=>{const now=new Date(),stamp=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),filename='Geburtstagsbuddy-Backup-'+stamp+'.json';const backupData={...state,backup:{...(state.backup||{}),lastBackupAt:now.toISOString(),lastReminderNoticeMonth:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')}};const blob=new Blob([JSON.stringify(backupData,null,2)],{type:'application/json'});try{const file=new File([blob],filename,{type:'application/json'});if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Geburtstagsbuddy-Sicherung',text:'Bitte in der Dateien-App unter iCloud Drive speichern.'});state.backup=backupData.backup;persist();renderBackupStatus();toast('Sicherung geteilt. Wähle „In Dateien sichern“ und iCloud Drive.')}else{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);state.backup=backupData.backup;persist();renderBackupStatus();toast('Datei erstellt. Bitte in Dateien > iCloud Drive ablegen.')}}catch(err){if(err?.name!=='AbortError')toast('Sicherung konnte nicht erstellt werden. Bitte erneut versuchen.')}});
