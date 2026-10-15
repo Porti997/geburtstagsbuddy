@@ -117,17 +117,17 @@ $('exportData').addEventListener('click',async()=>{const now=new Date(),stamp=no
 $('importFile').addEventListener('change',async e=>{
  const input=e.currentTarget,f=input.files&&input.files[0];
  if(!f)return;
+ toast('Sicherungsdatei wird gelesen …');
  try{
-  const raw=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(new Error('Datei konnte nicht gelesen werden'));reader.readAsText(f)});
-  const data=JSON.parse(raw);
-  if(!data||!Array.isArray(data.events))throw new Error('Ungültiges Sicherungsformat');
-  if(!confirm('Import ersetzt die aktuell gespeicherten Daten. Fortfahren?'))return;
+  const raw=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(new Error('Die Datei konnte nicht gelesen werden.'));reader.readAsText(f)});
+  let data;try{data=JSON.parse(raw)}catch(_){throw new Error('Die ausgewählte Datei enthält kein gültiges JSON. Bitte die Geburtstagsbuddy-JSON-Sicherung auswählen.')}
+  if(!data||!Array.isArray(data.events))throw new Error('Diese Datei enthält keine Geburtstagsbuddy-Einträge (events). Bitte eine originale JSON-Sicherung auswählen.');
   state={...state,...data,events:data.events,features:{...state.features,...(data.features||{})},done:data.done||{},backup:data.backup||state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null}};
   persist();
   renderHome();renderPeople();renderCalendar();renderSettings();
   navigate('home');
-  toast('Sicherung erfolgreich wiederhergestellt: '+state.events.length+' Einträge');
- }catch(err){toast(err?.message==='Ungültiges Sicherungsformat'?'Diese Datei ist keine gültige Geburtstagsbuddy-Sicherung.':'Sicherung konnte nicht gelesen werden. Bitte eine gültige JSON-Sicherungsdatei auswählen.')}
+  toast('Sicherung geladen: '+state.events.length+' Einträge');
+ }catch(err){toast(err?.message||'Sicherung konnte nicht geladen werden.')}
  finally{input.value=''}
 });
 $('clearData').addEventListener('click',()=>{if(confirm('Alle Personen und Einstellungen auf diesem Gerät löschen? Exportiere vorher eine Sicherung.')){state={events:[],style:'Schreibe locker, herzlich, kurz und natürlich. Nicht zu kitschig.',reminderDays:3,done:{},backup:{lastBackupAt:null,lastReminderNoticeMonth:null}};persist();renderHome();renderPeople();toast('Lokale Daten gelöscht')}});
