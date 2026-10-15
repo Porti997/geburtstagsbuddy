@@ -15,7 +15,7 @@ document.addEventListener('change',async function(e){
   if(!data||!Array.isArray(data.events))throw new Error('In dieser Datei fehlt die Liste „events“. Bitte eine originale Geburtstagsbuddy-Sicherung auswählen.');
   if(typeof state==='undefined')throw new Error('Die App wurde nicht vollständig initialisiert. Bitte Seite neu laden und erneut versuchen.');
   state={...state,...data,events:data.events.map(normalizeStoredEvent),features:{...(state.features||{}),...(data.features||{})},done:data.done&&typeof data.done==='object'?data.done:{},backup:data.backup&&typeof data.backup==='object'?data.backup:(state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null})};
-  try{localStorage.setItem('geburtstagsbuddy.v1',JSON.stringify(state))}catch(_){throw new Error('Daten wurden gelesen, konnten aber nicht lokal gespeichert werden. Bitte freien Gerätespeicher prüfen.')}
+  try{const snapshot=JSON.stringify(state);localStorage.setItem('geburtstagsbuddy.v1',snapshot);if(state.events.length)localStorage.setItem('geburtstagsbuddy.recovery.v1',snapshot)}catch(_){throw new Error('Daten wurden gelesen, konnten aber nicht lokal gespeichert werden. Bitte freien Gerätespeicher prüfen.')}
   try{if(typeof renderHome==='function')renderHome();if(typeof renderPeople==='function')renderPeople();if(typeof renderCalendar==='function')renderCalendar();if(typeof renderSettings==='function')renderSettings();if(typeof navigate==='function')navigate('home')}catch(renderError){throw new Error('Sicherung gespeichert, aber Anzeige fehlgeschlagen: '+(renderError.message||'unbekannter Darstellungsfehler'))}
   showImportMessage('Sicherung geladen: '+state.events.length+' Einträge.');
  }catch(err){showImportMessage(err&&err.message?err.message:'Sicherung konnte nicht geladen werden.')}
@@ -53,11 +53,22 @@ function normalizeStoredEvent(ev){
  if(!item.firstName){const parts=String(item.name||'').trim().split(/\s+/);item.firstName=parts.shift()||'';if(!item.lastName)item.lastName=parts.join(' ')}
  return item;
 }
-function load(){try{const saved=JSON.parse(localStorage.getItem(STORE));if(saved&&typeof saved==='object')state={...state,...saved};state.events=(Array.isArray(state.events)?state.events:[]).map(normalizeStoredEvent)}catch(e){state.events=[]}}
+const RECOVERY_STORE='geburtstagsbuddy.recovery.v1';
+function load(){
+ let saved=null,recovery=null;
+ try{saved=JSON.parse(localStorage.getItem(STORE))}catch(_){}
+ try{recovery=JSON.parse(localStorage.getItem(RECOVERY_STORE))}catch(_){}
+ if(saved&&typeof saved==='object')state={...state,...saved};
+ const savedEvents=Array.isArray(state.events)?state.events:[];
+ const recoveryEvents=recovery&&Array.isArray(recovery.events)?recovery.events:[];
+ if(savedEvents.length===0&&recoveryEvents.length>0){state={...state,...recovery,events:recoveryEvents};try{localStorage.setItem(STORE,JSON.stringify(state))}catch(_){}}
+ state.events=(Array.isArray(state.events)?state.events:[]).map(normalizeStoredEvent);
+}
+
 
 function fullName(ev){return [ev.firstName,ev.lastName].filter(Boolean).join(' ')||ev.name||''}
 function greetingName(ev){return ev.firstName||String(ev.name||'').trim().split(/\\s+/)[0]||''}
-function persist(){try{localStorage.setItem(STORE,JSON.stringify(state));return true}catch(e){toast('Speichern nicht möglich – der Gerätespeicher ist möglicherweise voll. Bitte Foto verkleinern oder Daten exportieren.');return false}}
+function persist(){try{const snapshot=JSON.stringify(state);localStorage.setItem(STORE,snapshot);if(Array.isArray(state.events)&&state.events.length>0)localStorage.setItem(RECOVERY_STORE,snapshot);return true}catch(e){toast('Speichern nicht möglich – der Gerätespeicher ist möglicherweise voll. Bitte Daten exportieren.');return false}}
 function uid(){return 'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function nextOccurrence(ev,from=new Date()){const src=parseDate(ev.date);if(!src)return null;const today=new Date(from.getFullYear(),from.getMonth(),from.getDate(),12);let d=new Date(today.getFullYear(),src.getMonth(),src.getDate(),12);if(d<today)d=new Date(today.getFullYear()+1,src.getMonth(),src.getDate(),12);return d}
 function dayDiff(a,b){return Math.round((new Date(a.getFullYear(),a.getMonth(),a.getDate())-new Date(b.getFullYear(),b.getMonth(),b.getDate()))/86400000)}
