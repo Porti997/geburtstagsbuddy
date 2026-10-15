@@ -14,7 +14,7 @@ document.addEventListener('change',async function(e){
   try{data=JSON.parse(raw)}catch(_){throw new Error('Die Datei ist kein gültiges JSON. Bitte die originale Geburtstagsbuddy-Backup-Datei auswählen.')}
   if(!data||!Array.isArray(data.events))throw new Error('In dieser Datei fehlt die Liste „events“. Bitte eine originale Geburtstagsbuddy-Sicherung auswählen.');
   if(typeof state==='undefined')throw new Error('Die App wurde nicht vollständig initialisiert. Bitte Seite neu laden und erneut versuchen.');
-  state={...state,...data,events:data.events.map(ev=>({...ev})),features:{...(state.features||{}),...(data.features||{})},done:data.done&&typeof data.done==='object'?data.done:{},backup:data.backup&&typeof data.backup==='object'?data.backup:(state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null})};
+  state={...state,...data,events:data.events.map(normalizeStoredEvent),features:{...(state.features||{}),...(data.features||{})},done:data.done&&typeof data.done==='object'?data.done:{},backup:data.backup&&typeof data.backup==='object'?data.backup:(state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null})};
   try{localStorage.setItem('geburtstagsbuddy.v1',JSON.stringify(state))}catch(_){throw new Error('Daten wurden gelesen, konnten aber nicht lokal gespeichert werden. Bitte freien Gerätespeicher prüfen.')}
   try{if(typeof renderHome==='function')renderHome();if(typeof renderPeople==='function')renderPeople();if(typeof renderCalendar==='function')renderCalendar();if(typeof renderSettings==='function')renderSettings();if(typeof navigate==='function')navigate('home')}catch(renderError){throw new Error('Sicherung gespeichert, aber Anzeige fehlgeschlagen: '+(renderError.message||'unbekannter Darstellungsfehler'))}
   showImportMessage('Sicherung geladen: '+state.events.length+' Einträge.');
@@ -38,7 +38,23 @@ let state={events:[],features:{zodiac:false,ascendant:false,gifts:false},style:'
 function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function parseDate(s){if(!s)return null;const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d,12)}
 function fmtDate(d,o={day:'numeric',month:'long'}){return d.toLocaleDateString('de-DE',o)}
-function load(){try{const s=JSON.parse(localStorage.getItem(STORE));if(s&&typeof s==='object')state={...state,...s};state.events=(state.events||[]).map(ev=>{if(!Object.prototype.hasOwnProperty.call(ev,'firstName')){const parts=String(ev.name||'').trim().split(/\\s+/);ev.firstName=parts.shift()||'';ev.lastName=parts.join(' ')}return ev})}catch(e){}} 
+function normalizeStoredDate(value){
+ if(!value)return '';
+ const s=String(value).trim();
+ let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+ if(m){const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]);const dt=new Date(Date.UTC(y,mo-1,d));return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d?String(y).padStart(4,'0')+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'):''}
+ m=s.match(/^(\d{1,2})[.\/ -](\d{1,2})[.\/ -](\d{4})$/);
+ if(m){const d=Number(m[1]),mo=Number(m[2]),y=Number(m[3]);const dt=new Date(Date.UTC(y,mo-1,d));return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d?String(y).padStart(4,'0')+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'):''}
+ return '';
+}
+function normalizeStoredEvent(ev){
+ const item={...(ev||{})};
+ item.date=normalizeStoredDate(item.date);
+ if(!item.firstName){const parts=String(item.name||'').trim().split(/\s+/);item.firstName=parts.shift()||'';if(!item.lastName)item.lastName=parts.join(' ')}
+ return item;
+}
+function load(){try{const saved=JSON.parse(localStorage.getItem(STORE));if(saved&&typeof saved==='object')state={...state,...saved};state.events=(Array.isArray(state.events)?state.events:[]).map(normalizeStoredEvent)}catch(e){state.events=[]}}
+
 function fullName(ev){return [ev.firstName,ev.lastName].filter(Boolean).join(' ')||ev.name||''}
 function greetingName(ev){return ev.firstName||String(ev.name||'').trim().split(/\\s+/)[0]||''}
 function persist(){try{localStorage.setItem(STORE,JSON.stringify(state));return true}catch(e){toast('Speichern nicht möglich – der Gerätespeicher ist möglicherweise voll. Bitte Foto verkleinern oder Daten exportieren.');return false}}
