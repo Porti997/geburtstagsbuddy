@@ -101,7 +101,23 @@ $('closeMessage').addEventListener('click',closeMessage);$('messageModal').addEv
 $('copyMessage').addEventListener('click',async()=>{const t=$('messageText').value;try{await navigator.clipboard.writeText(t);toast('Nachricht kopiert')}catch(e){$('messageText').select();document.execCommand('copy');toast('Nachricht kopiert')}});
 $('markDone').addEventListener('click',()=>{const ev=state.events.find(e=>e.id===messageEventId);if(!ev)return;state.done[ev.id+'-'+isoDate(nextOccurrence(ev))]=true;persist();closeMessage();renderHome();renderPeople();toast('Als erledigt markiert')});
 $('exportData').addEventListener('click',async()=>{const now=new Date(),stamp=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),filename='Geburtstagsbuddy-Backup-'+stamp+'.json';const backupData={...state,backup:{...(state.backup||{}),lastBackupAt:now.toISOString(),lastReminderNoticeMonth:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')}};const blob=new Blob([JSON.stringify(backupData,null,2)],{type:'application/json'});try{const file=new File([blob],filename,{type:'application/json'});if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Geburtstagsbuddy-Sicherung',text:'Bitte in der Dateien-App unter iCloud Drive speichern.'});state.backup=backupData.backup;persist();renderBackupStatus();toast('Sicherung geteilt. Wähle „In Dateien sichern“ und iCloud Drive.')}else{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);state.backup=backupData.backup;persist();renderBackupStatus();toast('Datei erstellt. Bitte in Dateien > iCloud Drive ablegen.')}}catch(err){if(err?.name!=='AbortError')toast('Sicherung konnte nicht erstellt werden. Bitte erneut versuchen.')}});
-$('importData').addEventListener('click',()=>$('importFile').click());$('importFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data||!Array.isArray(data.events))throw new Error();if(!confirm('Import ersetzt die aktuell gespeicherten Daten. Fortfahren?'))return;state={...state,...data};persist();renderHome();renderPeople();toast('Daten importiert')}catch(err){toast('Datei konnte nicht gelesen werden')}e.target.value=''});
+// iOS Safari: the real file input is placed over the visible label, avoiding scripted clicks on hidden inputs.
+$('importFile').addEventListener('change',async e=>{
+ const input=e.currentTarget,f=input.files&&input.files[0];
+ if(!f)return;
+ try{
+  const raw=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(new Error('Datei konnte nicht gelesen werden'));reader.readAsText(f)});
+  const data=JSON.parse(raw);
+  if(!data||!Array.isArray(data.events))throw new Error('Ungültiges Sicherungsformat');
+  if(!confirm('Import ersetzt die aktuell gespeicherten Daten. Fortfahren?'))return;
+  state={...state,...data,events:data.events,features:{...state.features,...(data.features||{})},done:data.done||{},backup:data.backup||state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null}};
+  persist();
+  renderHome();renderPeople();renderCalendar();renderSettings();
+  navigate('home');
+  toast('Sicherung erfolgreich wiederhergestellt: '+state.events.length+' Einträge');
+ }catch(err){toast(err?.message==='Ungültiges Sicherungsformat'?'Diese Datei ist keine gültige Geburtstagsbuddy-Sicherung.':'Sicherung konnte nicht gelesen werden. Bitte eine gültige JSON-Sicherungsdatei auswählen.')}
+ finally{input.value=''}
+});
 $('clearData').addEventListener('click',()=>{if(confirm('Alle Personen und Einstellungen auf diesem Gerät löschen? Exportiere vorher eine Sicherung.')){state={events:[],style:'Schreibe locker, herzlich, kurz und natürlich. Nicht zu kitschig.',reminderDays:3,done:{},backup:{lastBackupAt:null,lastReminderNoticeMonth:null}};persist();renderHome();renderPeople();toast('Lokale Daten gelöscht')}});
 
 function icsEscape(value){return String(value??'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n')}
