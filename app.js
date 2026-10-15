@@ -1,4 +1,27 @@
 
+// Backup restore is delegated at document level so it remains registered even if a later
+// feature initializer fails. File selection is handled from the actual input change event.
+document.addEventListener('change',async function(e){
+ const input=e.target;
+ if(!input||input.id!=='importFile')return;
+ const file=input.files&&input.files[0];
+ if(!file)return;
+ const showImportMessage=message=>{const el=document.getElementById('toast');if(el){el.textContent=message;el.classList.add('show')}else window.alert(message)};
+ showImportMessage('Sicherungsdatei ausgewählt – lese Datei …');
+ try{
+  const raw=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(new Error('Datei-Lesefehler'));reader.readAsText(file)});
+  let data;
+  try{data=JSON.parse(raw)}catch(_){throw new Error('Die Datei ist kein gültiges JSON. Bitte die originale Geburtstagsbuddy-Backup-Datei auswählen.')}
+  if(!data||!Array.isArray(data.events))throw new Error('In dieser Datei fehlt die Liste „events“. Bitte eine originale Geburtstagsbuddy-Sicherung auswählen.');
+  if(typeof state==='undefined')throw new Error('Die App wurde nicht vollständig initialisiert. Bitte Seite neu laden und erneut versuchen.');
+  state={...state,...data,events:data.events,features:{...(state.features||{}),...(data.features||{})},done:data.done||{},backup:data.backup||state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null}};
+  try{localStorage.setItem('geburtstagsbuddy.v1',JSON.stringify(state))}catch(_){throw new Error('Daten wurden gelesen, konnten aber nicht lokal gespeichert werden. Bitte freien Gerätespeicher prüfen.')}
+  try{if(typeof renderHome==='function')renderHome();if(typeof renderPeople==='function')renderPeople();if(typeof renderCalendar==='function')renderCalendar();if(typeof renderSettings==='function')renderSettings();if(typeof navigate==='function')navigate('home')}catch(renderError){throw new Error('Sicherung gespeichert, aber Anzeige fehlgeschlagen: '+(renderError.message||'unbekannter Darstellungsfehler'))}
+  showImportMessage('Sicherung geladen: '+state.events.length+' Einträge.');
+ }catch(err){showImportMessage(err&&err.message?err.message:'Sicherung konnte nicht geladen werden.')}
+ finally{input.value=''}
+},true);
+
 // Early, delegated controls: keeps core navigation and backup actions available even if a later
 // feature initializer throws. Registered before the rest of the app initializes.
 document.addEventListener('click',function(e){
@@ -114,22 +137,6 @@ $('copyMessage').addEventListener('click',async()=>{const t=$('messageText').val
 $('markDone').addEventListener('click',()=>{const ev=state.events.find(e=>e.id===messageEventId);if(!ev)return;state.done[ev.id+'-'+isoDate(nextOccurrence(ev))]=true;persist();closeMessage();renderHome();renderPeople();toast('Als erledigt markiert')});
 $('exportData').addEventListener('click',async()=>{const now=new Date(),stamp=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),filename='Geburtstagsbuddy-Backup-'+stamp+'.json';const backupData={...state,backup:{...(state.backup||{}),lastBackupAt:now.toISOString(),lastReminderNoticeMonth:now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')}};const blob=new Blob([JSON.stringify(backupData,null,2)],{type:'application/json'});try{const file=new File([blob],filename,{type:'application/json'});if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Geburtstagsbuddy-Sicherung',text:'Bitte in der Dateien-App unter iCloud Drive speichern.'});state.backup=backupData.backup;persist();renderBackupStatus();toast('Sicherung geteilt. Wähle „In Dateien sichern“ und iCloud Drive.')}else{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);state.backup=backupData.backup;persist();renderBackupStatus();toast('Datei erstellt. Bitte in Dateien > iCloud Drive ablegen.')}}catch(err){if(err?.name!=='AbortError')toast('Sicherung konnte nicht erstellt werden. Bitte erneut versuchen.')}});
 // iOS Safari: the real file input is placed over the visible label, avoiding scripted clicks on hidden inputs.
-$('importFile').addEventListener('change',async e=>{
- const input=e.currentTarget,f=input.files&&input.files[0];
- if(!f)return;
- toast('Sicherungsdatei wird gelesen …');
- try{
-  const raw=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(new Error('Die Datei konnte nicht gelesen werden.'));reader.readAsText(f)});
-  let data;try{data=JSON.parse(raw)}catch(_){throw new Error('Die ausgewählte Datei enthält kein gültiges JSON. Bitte die Geburtstagsbuddy-JSON-Sicherung auswählen.')}
-  if(!data||!Array.isArray(data.events))throw new Error('Diese Datei enthält keine Geburtstagsbuddy-Einträge (events). Bitte eine originale JSON-Sicherung auswählen.');
-  state={...state,...data,events:data.events,features:{...state.features,...(data.features||{})},done:data.done||{},backup:data.backup||state.backup||{lastBackupAt:null,lastReminderNoticeMonth:null}};
-  persist();
-  renderHome();renderPeople();renderCalendar();renderSettings();
-  navigate('home');
-  toast('Sicherung geladen: '+state.events.length+' Einträge');
- }catch(err){toast(err?.message||'Sicherung konnte nicht geladen werden.')}
- finally{input.value=''}
-});
 $('clearData').addEventListener('click',()=>{if(confirm('Alle Personen und Einstellungen auf diesem Gerät löschen? Exportiere vorher eine Sicherung.')){state={events:[],style:'Schreibe locker, herzlich, kurz und natürlich. Nicht zu kitschig.',reminderDays:3,done:{},backup:{lastBackupAt:null,lastReminderNoticeMonth:null}};persist();renderHome();renderPeople();toast('Lokale Daten gelöscht')}});
 
 function icsEscape(value){return String(value??'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n')}
